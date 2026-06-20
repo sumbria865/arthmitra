@@ -4,16 +4,23 @@
     "allowJs": true,
     "esModuleInterop": true,
     "jsx": "react-jsx",
-    "lib": ["DOM", "ESNext"],
+    "lib": [
+      "DOM",
+      "ESNext"
+    ],
     "module": "esnext",
     "moduleDetection": "force",
     "moduleResolution": "bundler",
-    "customConditions": ["react-native"],
+    "customConditions": [
+      "react-native"
+    ],
     "noEmit": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "target": "ESNext",
-    "types": ["react-native"]
+    "types": [
+      "react-native"
+    ]
   },
   "exclude": [
     "node_modules",
@@ -22,5 +29,6 @@
     "jest.config.js",
     "android",
     "ios"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }

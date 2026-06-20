@@ -101,8 +101,10 @@ export default function BenefitsNavigator() {
               onPress={() => setCategory(cat.id)}
             >
               <Text style={[styles.catLabel, category === cat.id && styles.catLabelActive]}>{cat.label}</Text>
+              
             </TouchableOpacity>
           ))}
+          
         </ScrollView>
 
         {/* Scheme cards */}
@@ -159,13 +161,38 @@ function SchemeCard({ scheme }: { scheme: any }) {
       </View>
 
       {/* Apply button */}
-      <TouchableOpacity
-        style={[styles.applyBtn, { borderColor: matchColor }]}
-        onPress={() => Linking.openURL(scheme.apply_url)}
-      >
-        <Text style={[styles.applyBtnText, { color: matchColor }]}>Apply Now • अभी आवेदन करें</Text>
-        <Ionicons name="arrow-forward" size={14} color={matchColor} />
-      </TouchableOpacity>
+      {/* Apply button */}
+<TouchableOpacity
+  style={[
+    styles.applyBtn,
+    { borderColor: matchColor }
+  ]}
+  onPress={() => {
+    console.log("SCHEME =", scheme);
+    console.log("OPENING =", scheme.apply_url);
+
+    if (scheme.apply_url) {
+      Linking.openURL(scheme.apply_url);
+    } else {
+      alert("No apply URL found");
+    }
+  }}
+>
+  <Text
+    style={[
+      styles.applyBtnText,
+      { color: matchColor }
+    ]}
+  >
+    Apply Now • अभी आवेदन करें
+  </Text>
+
+  <Ionicons
+    name="arrow-forward"
+    size={14}
+    color={matchColor}
+  />
+</TouchableOpacity>
     </View>
   );
 }

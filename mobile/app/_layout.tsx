@@ -3,7 +3,20 @@
  */
 
 import { useEffect } from 'react';
-import { Stack } from 'expo-router';
+import { Platform } from 'react-native';
+import { Slot } from 'expo-router';
+
+// Suppress noisy web-only deprecation warnings coming from dependencies
+if (Platform.OS === 'web') {
+  const __origWarn = console.warn;
+  // drop pointerEvents deprecation warnings which originate from react-native-web internals
+  console.warn = (...args: any[]) => {
+    if (typeof args[0] === 'string' && args[0].includes('props.pointerEvents is deprecated')) {
+      return;
+    }
+    return __origWarn(...args);
+  };
+}
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -14,7 +27,6 @@ SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: 2, staleTime: 5 * 60 * 1000 },
-    mutations: { retry: 1 },
   },
 });
 
@@ -27,14 +39,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="auth/splash" />
-            <Stack.Screen name="auth/language" />
-            <Stack.Screen name="auth/onboarding" />
-            <Stack.Screen name="auth/otp" />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
+          <Slot />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

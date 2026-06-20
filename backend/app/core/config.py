@@ -6,7 +6,7 @@ ArthMitra — Application Configuration
 ArthMitra — Application Configuration
 """
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # App
@@ -27,6 +27,7 @@ class Settings(BaseSettings):
 
     # Claude (Anthropic)
     ANTHROPIC_API_KEY: str
+    GEMINI_API_KEY: str = ""
 
     # Supabase
     SUPABASE_URL: str
@@ -39,7 +40,16 @@ class Settings(BaseSettings):
     JWT_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
     # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:8081", "http://localhost:3000", "exp://localhost:8081"]
+    # CORS
+    CORS_ORIGINS: list[str] = [
+    "http://localhost:8082",      # Expo Web
+    "http://127.0.0.1:8082",
+
+    "http://localhost:8081",      # Expo native
+    "exp://localhost:8081",
+
+    "http://localhost:3000",      # React web if needed
+]
 
     # Voice
     WHISPER_MODEL: str = "large-v3"
@@ -50,9 +60,11 @@ class Settings(BaseSettings):
     LANGFUSE_SECRET_KEY: str = ""
     LANGFUSE_HOST: str = "https://cloud.langfuse.com"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore",
+    )
 
 
 settings = Settings()

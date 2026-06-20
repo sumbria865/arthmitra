@@ -5,20 +5,43 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1';
+const env = (globalThis as any).process?.env ?? {};
+const BASE_URL = env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1';
 
+console.log("BASE_URL =", BASE_URL);
 export const api = axios.create({
   baseURL: BASE_URL,
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 });
-
-// Attach JWT on every request
 api.interceptors.request.use(async (config) => {
-  const token = await SecureStore.getItemAsync('access_token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  console.log(
+    "REQUEST URL =",
+    (config.baseURL || "") + (config.url || "")
+  );
+
+  // TEMPORARILY DISABLED FOR DEBUGGING
   return config;
 });
+
+
+api.interceptors.response.use(
+  (response) => {
+    console.log(
+      "API RESPONSE:",
+      response.config.url,
+      response.data
+    );
+    return response;
+  },
+  (error) => {
+    console.log(
+      "API ERROR:",
+      error?.response?.data || error.message
+    );
+    return Promise.reject(error);
+  }
+);
 
 // ── Chat ──────────────────────────────────────
 export const chatApi = {
@@ -31,8 +54,20 @@ export const chatApi = {
 
 // ── Scam ──────────────────────────────────────
 export const scamApi = {
-  scan: (content: string, type: 'url' | 'upi' | 'message' | 'qr') =>
-    api.post('/scam/scan', { content, scan_type: type, user_language: 'hi' }),
+ scan: async (
+  content: string,
+  type: 'url' | 'upi' | 'message' | 'qr'
+) => {
+  const res = await api.post('/scam/scan', {
+    content,
+    scan_type: type,
+    user_language: 'hi'
+  });
+
+  console.log("SCAM RESPONSE =", res.data);
+
+  return res;
+},
 
   getStats: () => api.get('/scam/stats'),
 };

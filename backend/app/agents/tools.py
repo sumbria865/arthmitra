@@ -30,7 +30,6 @@ async def extract_url(text: str) -> dict:
         "raw": text
     }
 
-
 @tool
 async def analyse_domain(url: str) -> dict:
     """
@@ -39,60 +38,142 @@ async def analyse_domain(url: str) -> dict:
     """
     try:
         domain = re.sub(r'https?://', '', url).split('/')[0]
-        
-        # Known scam patterns
-        scam_keywords = [
-            'instacash', 'quickloan', 'easymoney', 'fastloan',
-            'lotery', 'lottery', 'prize', 'winner', 'free',
-            'rbi-approved', 'sebi-certified', 'guaranteed-returns'
-        ]
-        
+        domain_lower = domain.lower()
+
         red_flags = []
         risk_score = 0.0
-        
-        # Check suspicious keywords in domain
-        for kw in scam_keywords:
-            if kw in domain.lower():
-                red_flags.append(f"Suspicious keyword '{kw}' in domain")
-                risk_score += 20.0
-        
-        # Check TLD
-        suspicious_tlds = ['.xyz', '.tk', '.ml', '.ga', '.cf', '.co.in']
-        for tld in suspicious_tlds:
-            if domain.endswith(tld):
-                red_flags.append(f"High-risk TLD: {tld}")
-                risk_score += 15.0
-        
-        # Simulate domain age check (production: use WHOIS API)
-        domain_hash = int(hashlib.md5(domain.encode()).hexdigest()[:4], 16)
-        simulated_age_days = domain_hash % 365
-        
-        if simulated_age_days < 30:
-            red_flags.append(f"Domain registered only {simulated_age_days} days ago")
+
+        # ==========================================
+        # BANK / KYC IMPERSONATION DETECTION
+        # ==========================================
+        bank_keywords = [
+            'sbi', 'hdfc', 'icici', 'axis',
+            'kotak', 'pnb', 'canara',
+            'unionbank', 'bankofbaroda',
+            'bob', 'paytm', 'phonepe'
+        ]
+
+        scam_words = [
+            'kyc', 'update', 'verify',
+            'reward', 'gift', 'winner',
+            'bonus', 'offer', 'login',
+            'secure', 'account', 'otp'
+        ]
+
+        if any(bank in domain_lower for bank in bank_keywords):
             risk_score += 30.0
-        elif simulated_age_days < 90:
-            red_flags.append(f"Very new domain ({simulated_age_days} days old)")
-            risk_score += 15.0
-        
-        # Check for number substitutions (l33t speak patterns)
-        if re.search(r'\d[a-z]|[a-z]\d', domain):
-            red_flags.append("Mixed numbers and letters — typical phishing pattern")
+            red_flags.append(
+                "Bank name detected in domain (possible impersonation)"
+            )
+
+        if any(word in domain_lower for word in scam_words):
             risk_score += 25.0
-        
+            red_flags.append(
+                "KYC/verification keyword detected"
+            )
+
+        # ==========================================
+        # KNOWN SCAM PATTERNS
+        # ==========================================
+        scam_keywords = [
+            'instacash',
+            'quickloan',
+            'easymoney',
+            'fastloan',
+            'lotery',
+            'lottery',
+            'prize',
+            'winner',
+            'free',
+            'rbi-approved',
+            'sebi-certified',
+            'guaranteed-returns'
+        ]
+
+        for kw in scam_keywords:
+            if kw in domain_lower:
+                red_flags.append(
+                    f"Suspicious keyword '{kw}' in domain"
+                )
+                risk_score += 20.0
+
+        # ==========================================
+        # SUSPICIOUS TLDs
+        # ==========================================
+        suspicious_tlds = [
+            '.xyz',
+            '.tk',
+            '.ml',
+            '.ga',
+            '.cf'
+        ]
+
+        for tld in suspicious_tlds:
+            if domain_lower.endswith(tld):
+                red_flags.append(
+                    f"High-risk TLD: {tld}"
+                )
+                risk_score += 25.0
+
+        # ==========================================
+        # DOMAIN AGE (SIMULATED)
+        # ==========================================
+        domain_hash = int(
+            hashlib.md5(domain.encode()).hexdigest()[:4],
+            16
+        )
+
+        simulated_age_days = domain_hash % 365
+
+        if simulated_age_days < 30:
+            red_flags.append(
+                f"Domain registered only {simulated_age_days} days ago"
+            )
+            risk_score += 30.0
+
+        elif simulated_age_days < 90:
+            red_flags.append(
+                f"Very new domain ({simulated_age_days} days old)"
+            )
+            risk_score += 15.0
+
+        # ==========================================
+        # PHISHING PATTERN
+        # ==========================================
+        if re.search(r'\d[a-z]|[a-z]\d', domain_lower):
+            red_flags.append(
+                "Mixed numbers and letters — phishing pattern"
+            )
+            risk_score += 25.0
+
+        # ==========================================
+        # FINAL SCORE
+        # ==========================================
         risk_score = min(risk_score, 100.0)
         trust_score = 100.0 - risk_score
-        
+
+        if risk_score >= 70:
+            verdict = "fraud"
+        elif risk_score >= 40:
+            verdict = "suspicious"
+        else:
+            verdict = "safe"
+
         return {
             "domain": domain,
             "domain_age_days": simulated_age_days,
             "risk_score": round(risk_score, 1),
             "trust_score": round(trust_score, 1),
             "red_flags": red_flags,
-            "verdict": "fraud" if risk_score > 70 else "suspicious" if risk_score > 40 else "safe"
+            "verdict": verdict
         }
-    except Exception as e:
-        return {"error": str(e), "risk_score": 50.0, "verdict": "suspicious"}
 
+    except Exception as e:
+        return {
+            "error": str(e),
+            "risk_score": 50.0,
+            "verdict": "suspicious"
+        }
 
 @tool
 async def check_rbi_registration(entity_name: str) -> dict:

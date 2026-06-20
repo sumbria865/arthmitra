@@ -1,0 +1,68 @@
+# =========================
+# Environment variables
+# =========================
+
+.env
+*.env
+
+backend/.env
+mobile/.env
+admin/.env
+
+# =========================
+# Python
+# =========================
+
+backend/.venv/
+backend/.venv311/
+
+venv/
+.venv/
+
+__pycache__/
+*.py[cod]
+
+# =========================
+# Node / Expo
+# =========================
+
+node_modules/
+
+.expo/
+mobile/.expo/
+
+dist/
+build/
+
+# =========================
+# Logs
+# =========================
+
+*.log
+
+# =========================
+# VS Code / IDE
+# =========================
+
+.vscode/
+.idea/
+
+# =========================
+# OS files
+# =========================
+
+.DS_Store
+Thumbs.db
+
+# =========================
+# Python cache inside backend
+# =========================
+
+backend/**/__pycache__/
+backend/**/*.pyc
+
+# =========================
+# Expo cache
+# =========================
+
+mobile/.expo-shared/

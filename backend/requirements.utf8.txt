@@ -1,0 +1,65 @@
+﻿websockets==15.0.1
+xxhash==3.7.0
+zstandard==0.25.0
+# ArthMitra Backend Dependencies
+# Python 3.11+ required
+
+# Web Framework
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
+
+# Database
+sqlalchemy[asyncio]==2.0.30
+alembic==1.13.1
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+
+# Cache
+redis[asyncio]==5.0.4
+
+# Vector DB
+qdrant-client==1.9.4
+
+# AI / Agents
+anthropic==0.28.0
+langgraph==0.1.19
+langchain-core==0.2.10
+langchain-anthropic==0.1.19
+
+
+
+websockets==15.0.1
+xxhash==3.7.0
+zstandard==0.25.0
+# ArthMitra Backend Dependencies
+# Python 3.11+ recommended
+
+# Web Framework
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
+
+# Database
+sqlalchemy[asyncio]==2.0.30
+alembic==1.13.1
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+
+# Serialization
+orjson==3.11.5
+
+# Redis
+redis[asyncio]==5.0.4
+
+# Vector DB client (adjusted for compatibility)
+qdrant-client==1.18.0
+
+# LangGraph orchestrator
+langgraph==0.1.19
+
+# Misc
+pydantic==1.10.12
+python-dotenv==1.0.0
+requests==2.31.0
+

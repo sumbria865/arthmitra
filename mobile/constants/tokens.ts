@@ -95,21 +95,30 @@ export const Radius = {
   button: 12,
 };
 
+import { Platform } from 'react-native';
+
+const webCardBox = '0px 2px 8px rgba(13,27,42,0.08)';
+const webModalBox = '0px -4px 16px rgba(13,27,42,0.15)';
+
 export const Shadows = {
-  card: {
-    shadowColor: '#0D1B2A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  modal: {
-    shadowColor: '#0D1B2A',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 10,
-  },
+  card: Platform.OS === 'web'
+    ? { boxShadow: webCardBox }
+    : {
+        shadowColor: '#0D1B2A',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 3,
+      },
+  modal: Platform.OS === 'web'
+    ? { boxShadow: webModalBox }
+    : {
+        shadowColor: '#0D1B2A',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+        elevation: 10,
+      },
 };
 
 // Bottom tab configuration — from App.tsx

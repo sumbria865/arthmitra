@@ -5,7 +5,10 @@ ArthMitra — LangGraph Agent Nodes
 
 import time
 import json
-from anthropic import AsyncAnthropic
+try:
+    from anthropic import AsyncAnthropic
+except Exception:
+    AsyncAnthropic = None
 from .state import AgentState
 from .prompts import (
     ORCHESTRATOR_PROMPT, SCAM_GUARDIAN_PROMPT, LITERACY_AGENT_PROMPT,
@@ -17,7 +20,13 @@ from .tools import (
     retrieve_regulatory_doc
 )
 
-client = AsyncAnthropic()
+# Lazily initialize the Anthropic client; if unavailable, set to None so the app can start.
+client = None
+if AsyncAnthropic is not None:
+    try:
+        client = AsyncAnthropic()
+    except Exception:
+        client = None
 
 HAIKU = "claude-haiku-4-5-20251001"   # 80% of queries — cost control
 SONNET = "claude-sonnet-4-6"           # Complex multi-step reasoning

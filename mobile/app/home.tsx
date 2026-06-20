@@ -10,13 +10,13 @@
  *   - Recent alerts
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, StatusBar, Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../constants/tokens';
 import { useAppStore } from '../store/appStore';
@@ -27,13 +27,22 @@ export default function HomeDashboard() {
   const router = useRouter();
   const user = useAppStore(s => s.user);
   const name = user?.name ?? 'Rajesh';
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const navMenu = [
+    { id: 'home', icon: 'home-outline', label: 'Home', route: '/(tabs)/home' },
+    { id: 'chat', icon: 'chatbubble-ellipses-outline', label: 'Ask AI', route: '/(tabs)/chat' },
+    { id: 'scam', icon: 'shield-outline', label: 'Scam', route: '/(tabs)/scam' },
+    { id: 'benefits', icon: 'gift-outline', label: 'Benefits', route: '/(tabs)/benefits' },
+    { id: 'profile', icon: 'person-circle-outline', label: 'Profile', route: '/(tabs)/profile' },
+  ];
 
   const quickActions = [
-    { id: 'scam', icon: 'shield-check', label: 'Scan Link', labelHi: 'लिंक स्कैन', color: Colors.danger, bg: Colors.pillRed, route: '/main/scam' },
+    { id: 'scam', icon: 'shield-checkmark', label: 'Scan Link', labelHi: 'लिंक स्कैन', color: Colors.danger, bg: Colors.pillRed, route: '/main/scam' },
     { id: 'chat', icon: 'chatbubble-ellipses', label: 'Ask AI', labelHi: 'AI से पूछें', color: Colors.primary, bg: Colors.pillBlue, route: '/main/chat' },
     { id: 'benefits', icon: 'gift', label: 'Benefits', labelHi: 'लाभ', color: Colors.success, bg: Colors.pillGreen, route: '/main/benefits' },
     { id: 'budget', icon: 'wallet', label: 'Budget', labelHi: 'बजट', color: Colors.warning, bg: Colors.pillOrange, route: '/main/coach' },
-    { id: 'voice', icon: 'mic', label: 'Voice', labelHi: 'आवाज़', color: Colors.agentLiteracy, bg: Colors.pillPurple, route: '/main/chat' },
+    { id: 'voice', icon: 'mic', label: 'Voice', labelHi: 'आवाज़', color: Colors.agentLiteracy, bg: Colors.pillPurple, route: '/main/voice' },
   ];
 
   return (
@@ -47,11 +56,34 @@ export default function HomeDashboard() {
           <Text style={styles.nameText}>Namaste, {name} 👋</Text>
           <Text style={styles.subText}>यहाँ आपकी वित्तीय जानकारी है</Text>
         </View>
-        <TouchableOpacity style={styles.notifBtn}>
-          <Ionicons name="notifications-outline" size={22} color={Colors.primary} />
-          <View style={styles.notifDot} />
-        </TouchableOpacity>
+        <View style={styles.topActions}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => setMenuOpen(!menuOpen)}>
+            <Ionicons name="menu" size={24} color={Colors.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.notifBtn}>
+            <Ionicons name="notifications-outline" size={22} color={Colors.primary} />
+            <View style={styles.notifDot} />
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {menuOpen && (
+        <View style={styles.menuOverlay}>
+          {navMenu.map(item => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.menuItem}
+              onPress={() => {
+                router.push(item.route as any);
+                setMenuOpen(false);
+              }}
+            >
+              <Ionicons name={item.icon as any} size={18} color={Colors.textPrimary} />
+              <Text style={styles.menuLabel}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
@@ -68,22 +100,24 @@ export default function HomeDashboard() {
 
         {/* Score row */}
         <View style={styles.scoreRow}>
-          <View style={[styles.scoreCard, Shadows.card]}>
+          <TouchableOpacity style={[styles.scoreCard, Shadows.card]} onPress={() => router.push('/main/scam')}>
             <View style={styles.scoreHeader}>
               <Text style={styles.scoreLabel}>Health Score</Text>
               <Ionicons name="heart" size={14} color={Colors.danger} />
             </View>
             <Text style={styles.scoreValue}>72<Text style={styles.scoreMax}>/100</Text></Text>
             <Text style={styles.scoreTag}>Good • अच्छा</Text>
-          </View>
-          <View style={[styles.scoreCard, Shadows.card]}>
+            <Text style={styles.scoreTap}>Tap to check health actions</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.scoreCard, Shadows.card]} onPress={() => router.push('/main/benefits')}>
             <View style={styles.scoreHeader}>
               <Text style={styles.scoreLabel}>Literacy Score</Text>
               <Ionicons name="book" size={14} color={Colors.agentLiteracy} />
             </View>
             <Text style={styles.scoreValue}>65<Text style={styles.scoreMax}>/100</Text></Text>
             <Text style={styles.scoreTag}>Growing • बढ़ रहा</Text>
-          </View>
+            <Text style={styles.scoreTap}>Tap to explore schemes</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Scam blocked + Schemes row */}
@@ -149,6 +183,17 @@ export default function HomeDashboard() {
           <Ionicons name="chevron-forward" size={16} color={Colors.textMuted} />
         </TouchableOpacity>
 
+        <View style={styles.footerCard}>
+          <Text style={styles.footerTitle}>Quick navigation</Text>
+          <View style={styles.footerNavRow}>
+            {navMenu.slice(0, 4).map(item => (
+              <TouchableOpacity key={item.id} style={styles.footerNavItem} onPress={() => router.push(item.route as any)}>
+                <Ionicons name={item.icon as any} size={18} color={Colors.primary} />
+                <Text style={styles.footerNavLabel}>{item.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
         <View style={{ height: 24 }} />
       </ScrollView>
     </SafeAreaView>
@@ -211,6 +256,7 @@ const styles = StyleSheet.create({
   progressFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
   progressSaved: { fontSize: Typography.xs, color: Colors.textSecondary },
   progressGoal: { fontSize: Typography.xs, color: Colors.textSecondary },
+  scoreTap: { fontSize: Typography.xs, color: Colors.textMuted, marginTop: 8 },
   sectionTitle: { fontSize: Typography.md, fontWeight: Typography.semibold, color: Colors.textPrimary, fontFamily: Typography.fontDisplay, marginBottom: Spacing.sm },
   qaScroll: { marginBottom: Spacing.md },
   qaBtn: {
@@ -219,6 +265,30 @@ const styles = StyleSheet.create({
   },
   qaLabel: { fontSize: Typography.xs, fontWeight: Typography.semibold, marginTop: 4, textAlign: 'center' },
   qaLabelHi: { fontSize: 9, color: Colors.textMuted, textAlign: 'center', marginTop: 1 },
+  footerCard: {
+    backgroundColor: Colors.surfaceWhite,
+    borderRadius: Radius.card,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+    ...Shadows.card,
+  },
+  footerTitle: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textPrimary, marginBottom: Spacing.sm },
+  footerNavRow: { flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.sm },
+  footerNavItem: { flex: 1, alignItems: 'center', paddingVertical: Spacing.sm, borderRadius: Radius.sm, backgroundColor: Colors.surfaceGray },
+  footerNavLabel: { fontSize: Typography.xs, color: Colors.textPrimary, marginTop: 4 },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  iconButton: { padding: Spacing.sm, borderRadius: Radius.sm, backgroundColor: Colors.surfaceGray },
+  menuOverlay: {
+    position: 'absolute', top: 76, right: 16,
+    backgroundColor: Colors.surfaceWhite, borderRadius: Radius.card,
+    padding: Spacing.sm, width: 200, zIndex: 10,
+    ...Shadows.card,
+  },
+  menuItem: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: Spacing.sm,
+  },
+  menuLabel: { fontSize: Typography.sm, color: Colors.textPrimary },
   alertsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
   seeAll: { fontSize: Typography.sm, color: Colors.primary, fontWeight: Typography.medium },
   alertCard: {

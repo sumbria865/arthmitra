@@ -57,17 +57,20 @@ export default function ScamGuardian() {
     }
     setLoading(true);
     try {
-      const { data } = await scamApi.scan(input.trim(), scanType);
-      setResult({
-        verdict: data.verdict,
-        riskScore: data.risk_score,
-        trustScore: data.trust_score,
-        rbiRegistered: data.rbi_registered,
-        domainAgeDays: data.domain_age_days,
-        redFlags: data.red_flags ?? [],
-        recommendation: data.recommendation,
-        legitimateAlternative: data.legitimate_alternative,
-      });
+     const { data } = await scamApi.scan(input.trim(), scanType);
+
+console.log("SCAN RESPONSE =", data);
+
+setResult({
+  verdict: data.verdict,
+  riskScore: data.risk_score,
+  trustScore: data.trust_score,
+  rbiRegistered: data.rbi_registered,
+  domainAgeDays: data.domain_age_days,
+  redFlags: data.red_flags ?? [],
+  recommendation: data.recommendation,
+  legitimateAlternative: data.legitimate_alternative,
+});
     } catch (e: any) {
       Alert.alert('Scan failed', e.message ?? 'Network error');
     } finally {

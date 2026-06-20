@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+backend/.venv/
+backend/.venv311/
+
+# Environment files
+.env
+*.env
+
+# Node
+node_modules/
+
+# Expo
+.expo/
+.expo-shared/
+
+# Build folders
+dist/
+build/
+
+# VS Code
+.vscode/
+
+# Mac / Windows
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+database/
+
+# Logs
+*.log
