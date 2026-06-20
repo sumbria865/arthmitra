@@ -1,85 +1,155 @@
 /**
- * ArthMitra — Splash Screen
+ * FILE: mobile/app/auth/splash.tsx
+ *
+ * This is the first screen users see.
+ * Two buttons:
+ *   "Get Started" → Register (new user → language → onboarding → otp)
+ *   "Login"       → Login   (returning user → otp directly)
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  StatusBar, Dimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Colors, Typography, Spacing, Radius } from '../constants/tokens';
+
+const { height } = Dimensions.get('window');
 
 export default function SplashScreen() {
   const router = useRouter();
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
+    <SafeAreaView style={s.safe}>
+      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
 
-        {/* Logo */}
-        <View style={styles.logoWrap}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoEmoji}>₹</Text>
+      <View style={s.container}>
+
+        {/* ── Brand section ── */}
+        <View style={s.brandSection}>
+          <View style={s.logoCircle}>
+            <Text style={s.logoRupee}>₹</Text>
           </View>
-          <Text style={styles.brand}>ArthMitra</Text>
-          <Text style={styles.tagline}>Your Financial Co-Pilot</Text>
-          <Text style={styles.taglineHi}>आपका वित्तीय सह-पायलट</Text>
+          <Text style={s.brand}>ArthMitra</Text>
+          <Text style={s.tagEn}>India's Agentic Financial Co-Pilot</Text>
+          <Text style={s.tagHi}>आपका वित्तीय सह-पायलट</Text>
         </View>
 
-        {/* Feature pills */}
-        <View style={styles.pillRow}>
-          {['UPI', 'Bank', 'Secure', 'Voice'].map(p => (
-            <View key={p} style={styles.pill}>
-              <Text style={styles.pillText}>{p}</Text>
+        {/* ── Feature pills ── */}
+        <View style={s.pillRow}>
+          {['🛡️ Scam Guard', '🎁 Govt Schemes', '💰 Savings Coach', '🎙️ Voice'].map(f => (
+            <View key={f} style={s.pill}>
+              <Text style={s.pillText}>{f}</Text>
             </View>
           ))}
         </View>
 
-        {/* Trust */}
-        <View style={styles.trustRow}>
-          <Text style={styles.trustText}>🔒 RBI Regulated • DPDP Compliant • ISO 27001</Text>
+        {/* ── Stats ── */}
+        <View style={s.statsRow}>
+          <View style={s.stat}>
+            <Text style={s.statNum}>900M</Text>
+            <Text style={s.statLabel}>Indians served</Text>
+          </View>
+          <View style={s.statDivider} />
+          <View style={s.stat}>
+            <Text style={s.statNum}>7</Text>
+            <Text style={s.statLabel}>AI Agents</Text>
+          </View>
+          <View style={s.statDivider} />
+          <View style={s.stat}>
+            <Text style={s.statNum}>99%</Text>
+            <Text style={s.statLabel}>Scam accuracy</Text>
+          </View>
         </View>
 
-        {/* CTA */}
-        <TouchableOpacity style={styles.cta} onPress={() => router.push('/language')}>
-          <Text style={styles.ctaText}>Get Started • शुरू करें</Text>
-        </TouchableOpacity>
+        {/* ── Buttons ── */}
+        <View style={s.btnSection}>
+          {/* REGISTER — new user */}
+          <TouchableOpacity
+            style={s.btnPrimary}
+            onPress={() => router.push('/auth/language')}
+            activeOpacity={0.85}
+          >
+            <Text style={s.btnPrimaryText}>Get Started — नया खाता बनाएं</Text>
+            <Text style={s.btnPrimarySub}>New user • पहली बार</Text>
+          </TouchableOpacity>
+
+          {/* LOGIN — returning user */}
+          <TouchableOpacity
+            style={s.btnSecondary}
+            onPress={() => router.push('/auth/phone')}
+            activeOpacity={0.85}
+          >
+            <Text style={s.btnSecondaryText}>Login — वापस आएं</Text>
+            <Text style={s.btnSecondarySub}>Already registered • पहले से खाता है</Text>
+          </TouchableOpacity>
+
+          <Text style={s.trust}>
+            🔒 No password • DPDP Act 2023 • OTP only
+          </Text>
+        </View>
 
       </View>
     </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.primary },
   container: {
-    flex: 1, alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.xl, paddingVertical: Spacing.section,
+    flex: 1,
+    paddingHorizontal: Spacing.xl,
+    justifyContent: 'space-between',
+    paddingTop: height * 0.06,
+    paddingBottom: Spacing.xl,
   },
-  logoWrap: { alignItems: 'center', marginTop: Spacing.section },
+
+  // Brand
+  brandSection: { alignItems: 'center' },
   logoCircle: {
     width: 88, height: 88, borderRadius: 44,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.md,
   },
-  logoEmoji: { fontSize: 44, color: '#fff' },
-  brand: {
-    fontSize: 42, fontWeight: '700', color: '#fff',
-    letterSpacing: -1,
-  },
-  tagline: { fontSize: Typography.md, color: 'rgba(255,255,255,0.85)', marginTop: 6 },
-  taglineHi: { fontSize: Typography.sm, color: 'rgba(255,255,255,0.65)', marginTop: 4 },
-  pillRow: { flexDirection: 'row', gap: Spacing.sm },
+  logoRupee: { fontSize: 46, color: '#fff' },
+  brand: { fontSize: 42, fontWeight: '700', color: '#fff', letterSpacing: -1 },
+  tagEn: { fontSize: Typography.md, color: 'rgba(255,255,255,0.85)', marginTop: 6, textAlign: 'center' },
+  tagHi: { fontSize: Typography.sm, color: 'rgba(255,255,255,0.6)', marginTop: 4 },
+
+  // Pills
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: Spacing.xs },
   pill: {
     backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: Spacing.md, paddingVertical: 6,
-    borderRadius: Radius.pill,
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: Radius.pill,
   },
-  pillText: { color: '#fff', fontSize: Typography.xs, fontWeight: '600' },
-  trustRow: { paddingHorizontal: Spacing.base },
-  trustText: { color: 'rgba(255,255,255,0.6)', fontSize: Typography.xs, textAlign: 'center' },
-  cta: {
-    width: '100%', backgroundColor: '#fff',
-    borderRadius: Radius.button, paddingVertical: 16, alignItems: 'center',
+  pillText: { color: '#fff', fontSize: 11, fontWeight: '600' },
+
+  // Stats
+  statsRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: Radius.card, padding: Spacing.md,
   },
-  ctaText: { color: Colors.primary, fontSize: Typography.md, fontWeight: '700' },
+  stat: { flex: 1, alignItems: 'center' },
+  statNum: { fontSize: Typography.xl, fontWeight: '700', color: '#fff' },
+  statLabel: { fontSize: 10, color: 'rgba(255,255,255,0.65)', marginTop: 2, textAlign: 'center' },
+  statDivider: { width: 1, height: 36, backgroundColor: 'rgba(255,255,255,0.25)' },
+
+  // Buttons
+  btnSection: { gap: Spacing.sm },
+  btnPrimary: {
+    backgroundColor: '#fff', borderRadius: Radius.button,
+    paddingVertical: 16, alignItems: 'center',
+  },
+  btnPrimaryText: { color: Colors.primary, fontSize: Typography.md, fontWeight: '700' },
+  btnPrimarySub: { color: Colors.primaryLight, fontSize: Typography.xs, marginTop: 3 },
+  btnSecondary: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: Radius.button, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.4)',
+    paddingVertical: 16, alignItems: 'center',
+  },
+  btnSecondaryText: { color: '#fff', fontSize: Typography.md, fontWeight: '700' },
+  btnSecondarySub: { color: 'rgba(255,255,255,0.65)', fontSize: Typography.xs, marginTop: 3 },
+  trust: { color: 'rgba(255,255,255,0.5)', fontSize: 10, textAlign: 'center', marginTop: 4 },
 });

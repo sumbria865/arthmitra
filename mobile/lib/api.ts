@@ -4,6 +4,7 @@
 
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 const env = (globalThis as any).process?.env ?? {};
 const BASE_URL = env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8000/api/v1';
@@ -14,16 +15,31 @@ export const api = axios.create({
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 });
+
 api.interceptors.request.use(async (config) => {
   console.log(
     "REQUEST URL =",
     (config.baseURL || "") + (config.url || "")
   );
 
-  // TEMPORARILY DISABLED FOR DEBUGGING
+  try {
+    let token: string | null = null;
+
+    if (Platform.OS === 'web') {
+      token = localStorage.getItem('access_token');
+    } else {
+      token = await SecureStore.getItemAsync('access_token');
+    }
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (err) {
+    console.log('TOKEN ERROR:', err);
+  }
+
   return config;
 });
-
 
 api.interceptors.response.use(
   (response) => {
@@ -84,7 +100,11 @@ export const benefitsApi = {
 // ── Auth ──────────────────────────────────────
 export const authApi = {
   sendOtp: (phone: string) => api.post('/auth/otp/send', { phone }),
-  verifyOtp: (phone: string, otp: string) => api.post('/auth/otp/verify', { phone, otp }),
+  //verifyOtp: (phone: string, otp: string) => api.post('/auth/otp/verify', { phone, otp }),
+  verifyOtp: (phone: string, otp: string) => {
+  console.log("CALLING VERIFY API", phone, otp);
+  return api.post('/auth/otp/verify', { phone, otp });
+},
   logout: () => api.post('/auth/logout'),
 };
 

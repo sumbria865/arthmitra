@@ -1,19 +1,21 @@
 """
-ArthMitra — Chat API Route
-POST /api/v1/chat/message — Main agent interaction endpoint
+ArthMitra — Chat API (with DB persistence)
+Every message saved to interactions table.
 """
 
 import uuid
 import time
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, desc
 from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.db.database import get_db
 from app.agents.graph import arthmitra_graph
 from app.agents.state import AgentState, UserContext
+from app.models.models import User, Interaction, Session as ChatSession
+from app.core.deps import get_current_user
 
 router = APIRouter()
 
@@ -40,47 +42,34 @@ class ChatResponse(BaseModel):
     requires_escalation: bool = False
 
 
-def _mock_user_context(user_id: str) -> UserContext:
-    """Stub — production: fetch from DB by user_id from JWT."""
-    return UserContext(
-        user_id=user_id,
-        phone="+919876543210",
-        name="Rajesh",
-        language="hi",
-        income_type="farmer",
-        literacy_score=42,
-        biggest_worry="debt",
-        state="Maharashtra",
-        is_pwd=False,
-    )
-
-
 @router.post("/message", response_model=ChatResponse)
 async def send_message(
     req: ChatRequest,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
-    # current_user: dict = Depends(get_current_user),  # uncomment with auth
 ):
-    """
-    Main chat endpoint — routes through the 7-agent LangGraph.
-    
-    - Detects language automatically
-    - Routes to correct specialist agent
-    - Returns grounded, sourced response with confidence score
-    - Escalates to human if confidence < 60 or high-stakes query
-    """
     t_start = time.time()
     session_id = req.session_id or str(uuid.uuid4())
-    user_id = "demo-user-001"  # Replace with JWT user_id in production
 
-    user_context = _mock_user_context(user_id)
+    # Build user context from real DB record
+    user_context = UserContext(
+        user_id=current_user.id,
+        phone=current_user.phone,
+        name=current_user.name or "User",
+        language=req.language_override or current_user.language or "hi",
+        income_type=current_user.income_type or "salaried",
+        literacy_score=current_user.literacy_score or 30,
+        biggest_worry=current_user.biggest_worry or "savings",
+        state=current_user.state or "Maharashtra",
+        is_pwd=current_user.is_pwd or False,
+    )
 
     initial_state: AgentState = {
         "user_context": user_context,
         "session_id": session_id,
         "messages": [],
         "user_input": req.message,
-        "user_input_language": req.language_override or "hi",
+        "user_input_language": req.language_override or current_user.language or "hi",
         "is_voice_input": req.is_voice,
         "active_agent": "",
         "intent": "",
@@ -93,7 +82,7 @@ async def send_message(
         "sources_cited": [],
         "final_response": "",
         "confidence": 0.0,
-        "response_language": user_context["language"],
+        "response_language": current_user.language or "hi",
         "tools_called": [],
         "latency_ms": 0,
     }
@@ -107,7 +96,29 @@ async def send_message(
         )
 
     confidence = final_state.get("confidence", 70.0)
-    requires_escalation = confidence < 60 or final_state.get("requires_escalation", False)
+    latency = int((time.time() - t_start) * 1000)
+
+    # ── Save to DB ────────────────────────────────────────────────
+    try:
+        interaction = Interaction(
+            id=str(uuid.uuid4()),
+            user_id=current_user.id,
+            session_id=session_id,
+            agent_name=final_state.get("active_agent", "master_orchestrator"),
+            intent=final_state.get("intent", "general"),
+            user_message=req.message,
+            response_text=final_state.get("final_response", ""),
+            response_language=current_user.language or "hi",
+            confidence=confidence,
+            source_docs=final_state.get("sources_cited", []),
+            tools_called=final_state.get("tools_called", []),
+            latency_ms=latency,
+            is_voice=req.is_voice,
+        )
+        db.add(interaction)
+        await db.commit()
+    except Exception as e:
+        print(f"[DB save warning] {e}")  # Don't fail the response if DB save fails
 
     return ChatResponse(
         response=final_state.get("final_response", "माफ़ करें, कुछ गड़बड़ हो गई।"),
@@ -116,17 +127,63 @@ async def send_message(
         intent=final_state.get("intent", "general"),
         tools_called=final_state.get("tools_called", []),
         sources=final_state.get("sources_cited", []),
-        latency_ms=int((time.time() - t_start) * 1000),
+        latency_ms=latency,
         session_id=session_id,
         scam_result=final_state.get("scam_result"),
         benefits=final_state.get("benefits_result"),
         nudge=final_state.get("nudge_result"),
-        requires_escalation=requires_escalation,
+        requires_escalation=confidence < 60,
     )
 
 
 @router.get("/history/{session_id}")
-async def get_chat_history(session_id: str, db: AsyncSession = Depends(get_db)):
-    """Retrieve chat history for a session."""
-    # Production: query interactions table
-    return {"session_id": session_id, "messages": [], "count": 0}
+async def get_chat_history(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all messages for a session from DB."""
+    result = await db.execute(
+        select(Interaction)
+        .where(
+            Interaction.user_id == current_user.id,
+            Interaction.session_id == session_id,
+        )
+        .order_by(Interaction.timestamp)
+    )
+    interactions = result.scalars().all()
+
+    messages = []
+    for i in interactions:
+        messages.append({"role": "user", "text": i.user_message, "timestamp": i.timestamp.isoformat()})
+        messages.append({"role": "assistant", "text": i.response_text, "confidence": i.confidence, "agent": i.agent_name, "timestamp": i.timestamp.isoformat()})
+
+    return {"session_id": session_id, "messages": messages, "count": len(interactions)}
+
+
+@router.get("/sessions")
+async def get_my_sessions(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get recent chat sessions for current user."""
+    result = await db.execute(
+        select(
+            Interaction.session_id,
+            Interaction.timestamp,
+            Interaction.intent,
+        )
+        .where(Interaction.user_id == current_user.id)
+        .order_by(desc(Interaction.timestamp))
+        .limit(20)
+    )
+    rows = result.all()
+    seen = {}
+    for row in rows:
+        if row.session_id not in seen:
+            seen[row.session_id] = {
+                "session_id": row.session_id,
+                "last_message_at": row.timestamp.isoformat(),
+                "last_intent": row.intent,
+            }
+    return {"sessions": list(seen.values())}
