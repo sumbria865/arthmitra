@@ -25,8 +25,7 @@ class Settings(BaseSettings):
     QDRANT_PORT: int = 6333
     QDRANT_COLLECTION: str = "arthmitra_knowledge"
 
-    # Claude (Anthropic)
-    ANTHROPIC_API_KEY: str
+  
     GEMINI_API_KEY: str = ""
 
     # Supabase
