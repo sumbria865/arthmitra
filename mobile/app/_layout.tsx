@@ -37,10 +37,8 @@ export default function RootLayout() {
             {/* Entry */}
             <Stack.Screen name="index" />
             {/* Root screens */}
-            <Stack.Screen name="splash" />
             <Stack.Screen name="language" />
             <Stack.Screen name="onboarding" />
-            <Stack.Screen name="otp" />
             {/* Auth folder */}
             <Stack.Screen name="auth/splash" />
             <Stack.Screen name="auth/language" />

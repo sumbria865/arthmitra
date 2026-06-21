@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { chatApi } from '../lib/api';
+import { Audio } from 'expo-av';
+import { chatApi, voiceApi } from '../lib/api';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../constants/tokens';
 import { useAppStore } from '../store/appStore';
 
@@ -36,14 +37,75 @@ const QUICK_REPLIES = [
   { text: 'Govt schemes', textHi: 'सरकारी योजनाएं' },
   { text: 'How much can I save per month?', textHi: 'मैं PM के लिए eligible हूँ?' },
 ];
-
 export default function ChatScreen() {
   const { messages, addMessage, sessionId, setSessionId } = useAppStore();
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const recordingRef = useRef<Audio.Recording | null>(null);
   const flatRef = useRef<FlatList>(null);
 
+  const startRecording = useCallback(async () => {
+    try {
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
+        addMessage({
+          id: `err-${Date.now()}`,
+          role: 'assistant',
+          text: 'माइक्रोफ़ोन की अनुमति चाहिए। कृपया settings में allow करें।\nMicrophone permission is needed. Please allow it in settings.',
+          timestamp: Date.now(),
+        });
+        return;
+      }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      recordingRef.current = recording;
+      setIsRecording(true);
+    } catch (e) {
+      console.log('RECORDING START ERROR:', e);
+    }
+  }, []);
+
+  const stopRecording = useCallback(async () => {
+    const recording = recordingRef.current;
+    if (!recording) return;
+    setIsRecording(false);
+    setIsTranscribing(true);
+    try {
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      recordingRef.current = null;
+      if (!uri) return;
+
+      const audioBlob = await (await fetch(uri)).blob();
+      const { data } = await voiceApi.transcribe(audioBlob);
+      if (data?.text) {
+        setInput(prev => (prev ? `${prev} ${data.text}` : data.text));
+      }
+    } catch (e) {
+      console.log('TRANSCRIBE ERROR:', e);
+      addMessage({
+        id: `err-${Date.now()}`,
+        role: 'assistant',
+        text: 'आवाज़ समझ नहीं आई। कृपया टाइप करें।\nCouldn\'t understand the audio. Please try typing instead.',
+        timestamp: Date.now(),
+      });
+    } finally {
+      setIsTranscribing(false);
+    }
+  }, []);
+
+  const handleMicPress = useCallback(() => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  }, [isRecording, startRecording, stopRecording]);
+
   const sendMessage = useCallback(async (text: string) => {
+
     if (!text.trim()) return;
 
     const userMsg: Message = {
@@ -186,13 +248,22 @@ export default function ChatScreen() {
         )}
 
         {/* Input row */}
+       {/* Input row */}
         <View style={styles.inputRow}>
-          <TouchableOpacity style={styles.voiceBtn}>
-            <Ionicons name="mic" size={20} color={Colors.primary} />
+          <TouchableOpacity
+            style={[styles.voiceBtn, isRecording && styles.voiceBtnActive]}
+            onPress={handleMicPress}
+            disabled={isTranscribing}
+          >
+            {isTranscribing ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <Ionicons name={isRecording ? 'stop' : 'mic'} size={20} color={isRecording ? Colors.surfaceWhite : Colors.primary} />
+            )}
           </TouchableOpacity>
           <TextInput
             style={styles.textInput}
-            placeholder="Type or speak your question..."
+            placeholder={isRecording ? 'Listening...' : 'Type or speak your question...'}
             placeholderTextColor={Colors.textMuted}
             value={input}
             onChangeText={setInput}
@@ -263,9 +334,12 @@ const styles = StyleSheet.create({
     padding: Spacing.sm, backgroundColor: Colors.surfaceWhite,
     borderTopWidth: 1, borderTopColor: Colors.border,
   },
-  voiceBtn: {
+ voiceBtn: {
     width: 40, height: 40, borderRadius: 20,
     backgroundColor: Colors.pillBlue, alignItems: 'center', justifyContent: 'center',
+  },
+  voiceBtnActive: {
+    backgroundColor: Colors.danger,
   },
   textInput: {
     flex: 1, backgroundColor: Colors.surfaceGray, borderRadius: Radius.md,

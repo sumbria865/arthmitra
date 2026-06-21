@@ -51,17 +51,14 @@ app = FastAPI(
 )
 
 # CORS Configuration
+# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:8082",
-        "http://127.0.0.1:8082",
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 # API Routes
 app.include_router(
     auth.router,

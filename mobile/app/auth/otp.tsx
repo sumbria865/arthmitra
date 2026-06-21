@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { Colors, Typography, Spacing, Radius } from '../../constants/tokens';
-import { authApi } from '../../lib/api';
+import { authApi, userApi } from '../../lib/api';
 import { useAppStore } from '../../store/appStore';
 
 type Stage = 'phone' | 'otp';
@@ -28,7 +28,7 @@ const saveToken = async (token: string) => {
 
 export default function OTPScreen() {
   const router = useRouter();
-  const { login, setUser } = useAppStore();
+  const { login, setUser, onboardingAnswers, selectedLanguage, clearOnboardingAnswers } = useAppStore();
 
   const [stage, setStage] = useState<Stage>('phone');
   const [phone, setPhone] = useState('');
@@ -92,7 +92,7 @@ export default function OTPScreen() {
   console.log("PHONE =", `+91${cleaned}`);
   console.log("OTP =", otp);
       const { data } = await authApi.verifyOtp(`+91${cleaned}`, otp);
-      
+
       // Save JWT
       await saveToken(data.access_token);
 
@@ -100,8 +100,31 @@ export default function OTPScreen() {
       login(data.access_token, data.user as any);
       if (data.user) setUser(data.user as any);
 
-      // Route: new user → onboarding, returning user → home
-      if (data.is_new_user || !data.user?.onboarding_done) {
+      const alreadyOnboarded = data.user?.onboarding_done;
+      const hasLocalAnswers =
+        onboardingAnswers?.income_type &&
+        onboardingAnswers?.biggest_worry &&
+        onboardingAnswers?.preferred_comm;
+
+      if (!alreadyOnboarded && hasLocalAnswers) {
+        // User just came from the onboarding questions screen —
+        // submit those answers now that we have a real account/token.
+        try {
+          const { data: onboardData } = await userApi.completeOnboarding({
+            income_type: onboardingAnswers.income_type,
+            biggest_worry: onboardingAnswers.biggest_worry,
+            preferred_comm: onboardingAnswers.preferred_comm,
+            language: selectedLanguage,
+          });
+          setUser({ ...(data.user as any), onboarding_done: true, literacy_score: onboardData.literacy_score });
+          clearOnboardingAnswers();
+        } catch (err) {
+          console.log("ONBOARDING SUBMIT ERROR =", err);
+          // Don't block login if this fails — user can retry from profile/settings.
+        }
+        router.replace('/(tabs)/home');
+      } else if (!alreadyOnboarded) {
+        // Returning/new user with no local answers collected — ask them now.
         router.replace('/auth/language');
       } else {
         router.replace('/(tabs)/home');

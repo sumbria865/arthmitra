@@ -100,6 +100,21 @@ async def send_message(
 
     # ── Save to DB ────────────────────────────────────────────────
     try:
+        # Ensure a Session row exists before inserting an Interaction that
+        # references it via foreign key — session_id is generated client-side
+        # (or accepted from the mobile app) but no row in `sessions` is ever
+        # created elsewhere, so we upsert it here before the FK insert.
+        existing_session = await db.get(ChatSession, session_id)
+        if existing_session is None:
+            db.add(ChatSession(
+                id=session_id,
+                user_id=current_user.id,
+                channel="mobile",
+                language_used=current_user.language or "hi",
+                message_count=0,
+            ))
+            await db.flush()  # ensure it exists before the Interaction FK references it
+
         interaction = Interaction(
             id=str(uuid.uuid4()),
             user_id=current_user.id,
@@ -119,6 +134,9 @@ async def send_message(
         await db.commit()
     except Exception as e:
         print(f"[DB save warning] {e}")  # Don't fail the response if DB save fails
+        await db.rollback()  # required — without this, the session stays in a
+                              # broken state and the cleanup commit in get_db()
+                              # raises PendingRollbackError, turning this into a 500
 
     return ChatResponse(
         response=final_state.get("final_response", "माफ़ करें, कुछ गड़बड़ हो गई।"),

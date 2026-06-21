@@ -10,24 +10,64 @@
  *   - Recent alerts
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, StatusBar, Dimensions,
+  StyleSheet, StatusBar, Dimensions, Modal, FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors, Typography, Spacing, Radius, Shadows } from '../constants/tokens';
 import { useAppStore } from '../store/appStore';
+import { notificationsApi } from '../lib/api';
 
 const { width } = Dimensions.get('window');
+
+interface NotifItem {
+  id: string;
+  title: string;
+  body: string;
+  is_read: boolean;
+}
 
 export default function HomeDashboard() {
   const router = useRouter();
   const user = useAppStore(s => s.user);
   const name = user?.name ?? 'Rajesh';
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotifItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const { data } = await notificationsApi.list();
+      setNotifications(data.notifications ?? []);
+      setUnreadCount(data.unread ?? 0);
+    } catch (e) {
+      console.log('NOTIF FETCH ERROR:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
+
+  const openNotifications = () => {
+    setNotifOpen(true);
+    fetchNotifications();
+  };
+
+  const markRead = async (id: string) => {
+    try {
+      await notificationsApi.markRead(id);
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (e) {
+      console.log('NOTIF READ ERROR:', e);
+    }
+  };
 
   const navMenu = [
     { id: 'home', icon: 'home-outline', label: 'Home', route: '/(tabs)/home' },
@@ -60,9 +100,9 @@ export default function HomeDashboard() {
           <TouchableOpacity style={styles.iconButton} onPress={() => setMenuOpen(!menuOpen)}>
             <Ionicons name="menu" size={24} color={Colors.primary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.notifBtn}>
+          <TouchableOpacity style={styles.notifBtn} onPress={openNotifications}>
             <Ionicons name="notifications-outline" size={22} color={Colors.primary} />
-            <View style={styles.notifDot} />
+            {unreadCount > 0 && <View style={styles.notifDot} />}
           </TouchableOpacity>
         </View>
       </View>
@@ -196,6 +236,36 @@ export default function HomeDashboard() {
         </View>
         <View style={{ height: 24 }} />
       </ScrollView>
+
+      <Modal visible={notifOpen} transparent animationType="fade" onRequestClose={() => setNotifOpen(false)}>
+        <TouchableOpacity style={styles.notifBackdrop} activeOpacity={1} onPress={() => setNotifOpen(false)}>
+          <View style={styles.notifPanel}>
+            <View style={styles.notifPanelHeader}>
+              <Text style={styles.notifPanelTitle}>Notifications</Text>
+              <TouchableOpacity onPress={() => setNotifOpen(false)}>
+                <Ionicons name="close" size={20} color={Colors.textMuted} />
+              </TouchableOpacity>
+            </View>
+            {notifications.length === 0 ? (
+              <Text style={styles.notifEmpty}>No notifications yet</Text>
+            ) : (
+              <FlatList
+                data={notifications}
+                keyExtractor={n => n.id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={[styles.notifItem, !item.is_read && styles.notifItemUnread]}
+                    onPress={() => markRead(item.id)}
+                  >
+                    <Text style={styles.notifTitle}>{item.title}</Text>
+                    <Text style={styles.notifBody}>{item.body}</Text>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -303,4 +373,17 @@ const styles = StyleSheet.create({
   alertBody: { flex: 1 },
   alertTitle: { fontSize: Typography.sm, color: Colors.textPrimary, fontWeight: Typography.medium },
   alertTime: { fontSize: Typography.xs, color: Colors.textMuted, marginTop: 2 },
+  notifBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
+  notifPanel: {
+    position: 'absolute', top: 70, right: 16, width: 280, maxHeight: 360,
+    backgroundColor: Colors.surfaceWhite, borderRadius: Radius.card,
+    padding: Spacing.md, ...Shadows.card,
+  },
+  notifPanelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
+  notifPanelTitle: { fontSize: Typography.sm, fontWeight: Typography.semibold, color: Colors.textPrimary },
+  notifEmpty: { fontSize: Typography.xs, color: Colors.textMuted, paddingVertical: Spacing.md, textAlign: 'center' },
+  notifItem: { paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  notifItemUnread: { backgroundColor: Colors.pillBlue },
+  notifTitle: { fontSize: Typography.xs, fontWeight: Typography.medium, color: Colors.textPrimary },
+  notifBody: { fontSize: 11, color: Colors.textMuted, marginTop: 2 },
 });

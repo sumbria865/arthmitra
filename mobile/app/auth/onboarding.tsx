@@ -28,9 +28,12 @@ const handleNext = async () => {
     return;
   }
 
-  console.log("FINAL ONBOARDING STEP");
+  console.log("FINAL ONBOARDING STEP — going to OTP to verify phone");
 
-  router.replace('/(tabs)/home');
+  // Onboarding answers are already saved in the Zustand store
+  // (onboardingAnswers). We still need to verify the user's phone
+  // via OTP before we have a real account / JWT to save them against.
+  router.push('/auth/otp');
 };
     // Last step — submit to backend (saves to DB)
     

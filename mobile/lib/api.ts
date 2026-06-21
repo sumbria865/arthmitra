@@ -128,3 +128,9 @@ export const voiceApi = {
   synthesize: (text: string, language = 'hi') =>
     api.post('/voice/synthesize', null, { params: { text, language } }),
 };
+
+// ── Notifications ───────────────────────────────
+export const notificationsApi = {
+  list: () => api.get('/notifications/'),
+  markRead: (notifId: string) => api.patch(`/notifications/${notifId}/read`),
+};
